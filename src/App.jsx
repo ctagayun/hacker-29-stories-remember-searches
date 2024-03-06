@@ -250,6 +250,12 @@ const useStorageState = (key, initialState) => {
   return [value, setValue];
 };
 
+const getLastSearches = (urls) => urls.slice(-5);
+
+/*
+  App Section
+ */
+
 const App = () => {
   const [searchTerm, setSearchTerm] = useStorageState(
     'search',
@@ -290,9 +296,19 @@ const App = () => {
   //(DD) new handler of the button sets the new stateful value 
   //called 'url' which is derived from the current searchTerm and 
   //the static API endpoint as a new state:
-  const [url, setUrl] = React.useState(
+  /*
+
+  First, we will refactor all url to urls state and all setUrl 
+  to setUrls state updater functions. Instead of initializing 
+  the state with an url as a string, make it an array with 
+  the initial url as its only entry:
+    const [url, setUrl] = React.useState(
+      `${API_ENDPOINT}${searchTerm}`
+     );
+  */
+  const [urls, setUrls] = React.useState([ //Array
     `${API_ENDPOINT}${searchTerm}`
-  );
+  ]);
 
   /*   Memoized useEffect
     After merging the three useState hooks into one Reducer hook,
@@ -376,8 +392,17 @@ const App = () => {
     //axios(url) //DD use the stateful 'url'
     //replace 'searhTerm' with stateful 'url' 
     try {
-      const result = await axios.get(url);
- 
+      //Second, instead of using the current url state for 
+      //data fetching, use the last url entry from the urls 
+      //array. If another url is added to the list of urls, 
+      //it is used to fetch data instead:
+      //const result = await axios.get(url); //current url
+
+      const lastUrl = urls[urls.length - 1];
+      const result = await axios.get(lastUrl); //We will use 
+                                    //lastUrl instead of the
+                                    //current url
+
       dispatchStories({
         type: 'STORIES_FETCH_SUCCESS',
         payload: result.data.hits,
@@ -385,8 +410,8 @@ const App = () => {
     } catch {
       dispatchStories({ type: 'STORIES_FETCH_FAILURE' });
     }
-  }, [url]);
-       const myDependencyArray = JSON.stringify(url);
+  }, [urls]);
+       const myDependencyArray = JSON.stringify(urls);
        console.log("dependency array SearchTerm value = " + myDependencyArray);
         //EOF //E - every time 'url' dependency array (E) changes 
                     //useCallback Hook creates a memoized function. As a
@@ -440,9 +465,17 @@ const App = () => {
   //which is setUrl(`${API_ENDPOINT}${searchTerm}`); the button receives
   //a new type attribute called submit which means the "onSubmit" handles
   //the click and not the button.
+
+  //And third, instead of storing the url string as state with the 
+  //state updater function, concatenate the new url using the concat 
+  //method with the previous urls in an array for the new state:
+  //const handleSearchSubmit = (event) => {
+  //  setUrl(`${API_ENDPOINT}${searchTerm}`);
+
   const handleSearchSubmit = (event) => {
-    setUrl(`${API_ENDPOINT}${searchTerm}`);
- 
+    const url = `${API_ENDPOINT}${searchTerm}`;
+    setUrls(urls.concat(url));
+
     //Next, since the handler is used for the form event, it 
     //executes preventDefault() additionally on React's
     //synthetic event. This prevents the HTML form's native 
@@ -450,6 +483,7 @@ const App = () => {
     event.preventDefault();
   };
 
+  const lastSearches = getLastSearches(urls);
   
    return (
     <div>
